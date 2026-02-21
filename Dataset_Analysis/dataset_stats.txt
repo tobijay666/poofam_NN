@@ -1,0 +1,21 @@
+=== DATASET STATISTICS ===
+Total Count: 3600
+
+             fix_x        fix_y
+count  3600.000000  3600.000000
+mean      0.683056     1.649722
+std     103.921112   103.596774
+min    -179.000000  -179.000000
+25%     -89.000000   -88.000000
+50%       1.000000     2.000000
+75%      91.000000    92.000000
+max     180.000000   180.000000
+
+=== BIN CONSISTENCY CHECK ===
+Target samples per bin: ~50.0
+Min samples in a bin (X): 38
+Max samples in a bin (X): 62
+Min samples in a bin (Y): 31
+Max samples in a bin (Y): 67
+
+SUCCESS: All bins contain data.

@@ -1,0 +1,5 @@
+/MN_voxels_dataset_360_gold
+/partOri
+.V33_Gold_Static_checkpoint.pth
+.V33_Gold_Static_final.pth
+*.pth
