@@ -3,3 +3,4 @@
 .V33_Gold_Static_checkpoint.pth
 .V33_Gold_Static_final.pth
 *.pth
+/__pycache__
