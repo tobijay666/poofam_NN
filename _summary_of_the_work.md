@@ -19,3 +19,4 @@ named auditing is done.
 the models are too confuding so i cheesed a specific one and asked it to apply the rortations. 
 
 # fix 03:
+so the dataste is correct it seems now, the only issue that i can see is the model. the reason is that i am using the weights of the pretrained model which was on video data. what i am going to do is revert back to the old model which is based on the resnet18 but no weights. 
