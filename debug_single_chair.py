@@ -9,8 +9,8 @@ import scipy.ndimage
 TARGET_ID = "chair_0298_x5_y100_aug_44_85"
 
 # Paths
-DATA_FOLDER = "../MN_voxels_dataset_360_gold"
-CSV_PATH = "../MN_metadata_360_gold/MN_voxel_data_360.csv"
+DATA_FOLDER = "MN_voxels_dataset_360_gold"
+CSV_PATH = "MN_metadata_360_gold/MN_voxel_data_360.csv"
 
 def visualize_slice(voxel, title, ax):
     # Project along axis 0 (Front/Side view)
