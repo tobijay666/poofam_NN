@@ -14,3 +14,8 @@ I didnot include the names of the models taht were used for testing. cant see wh
 
 # Fix 02: 
 named auditing is done. 
+
+# Issue 03:
+the models are too confuding so i cheesed a specific one and asked it to apply the rortations. 
+
+# fix 03:
