@@ -4,3 +4,4 @@
 .V33_Gold_Static_final.pth
 *.pth
 /__pycache__
+*.pkl
