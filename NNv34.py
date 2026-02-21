@@ -74,97 +74,98 @@ class VoxelDataset_Gold(Dataset):
         label_tensor = torch.tensor([fix_x / NORM_FACTOR, fix_y / NORM_FACTOR], dtype=torch.float32)
         
         return voxel_tensor, label_tensor
-
-# --- 3. SETUP ---
-if torch.cuda.is_available():
-    device = torch.device("cuda")
-    print(f"Training on NVIDIA GPU: {torch.cuda.get_device_name(0)}")
-    torch.backends.cudnn.benchmark = True
-else:
-    device = torch.device("cpu")
-
-if os.path.exists(DATA_FOLDER) and os.path.exists(CSV_PATH):
-    df = pd.read_csv(CSV_PATH)
-    file_ids = df['voxel_id'].values
-    fix_data = df[["fix_x", "fix_y"]].values
-
-    train_files, val_files, train_labels, val_labels = train_test_split(
-        file_ids, fix_data, test_size=0.2, random_state=42
-    )
-
-    train_dataset = VoxelDataset_Gold(DATA_FOLDER, train_files, train_labels)
-    val_dataset = VoxelDataset_Gold(DATA_FOLDER, val_files, val_labels)
-
-    # Batch size 32 is safe for your custom model
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=2, pin_memory=True)
-    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=2, pin_memory=True)
-else:
-    print("Error: Dataset not found.")
-    exit()
-
-# --- 4. INITIALIZE CUSTOM MODEL ---
-# Using V27 Architecture (ResNet + Attention + Linear Output)
-model = ThreeDResNet_V27(input_channels=1, num_outputs=2, dropout_prob=0.5)
-model.to(device)
-
-criterion = PeriodicMAELoss()
-optimizer = optim.AdamW(model.parameters(), lr=0.0005, weight_decay=0.05)
-scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
-
-# --- 5. TRAINING LOOP ---
-num_epochs = 50
-history = {'train_loss': [], 'val_loss': [], 'train_mae': [], 'val_mae': []}
-
-print(f"\nSTARTING TRAINING V34 (Custom Model + Gold Data)")
-print("-" * 60)
-
-for epoch in range(num_epochs):
-    model.train()
-    train_loss = 0.0
-    total_train = 0
-    loop = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}")
     
-    for inputs, labels in loop:
-        inputs, labels = inputs.to(device), labels.to(device)
-        optimizer.zero_grad()
-        outputs = model(inputs)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
+if __name__ == '__main__':
+    # --- 3. SETUP ---
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        print(f"Training on NVIDIA GPU: {torch.cuda.get_device_name(0)}")
+        torch.backends.cudnn.benchmark = True
+    else:
+        device = torch.device("cpu")
+
+    if os.path.exists(DATA_FOLDER) and os.path.exists(CSV_PATH):
+        df = pd.read_csv(CSV_PATH)
+        file_ids = df['voxel_id'].values
+        fix_data = df[["fix_x", "fix_y"]].values
+
+        train_files, val_files, train_labels, val_labels = train_test_split(
+            file_ids, fix_data, test_size=0.2, random_state=42
+        )
+
+        train_dataset = VoxelDataset_Gold(DATA_FOLDER, train_files, train_labels)
+        val_dataset = VoxelDataset_Gold(DATA_FOLDER, val_files, val_labels)
+
+        # Batch size 32 is safe for your custom model
+        train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=2, pin_memory=True)
+        val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=2, pin_memory=True)
+    else:
+        print("Error: Dataset not found.")
+        exit()
+
+    # --- 4. INITIALIZE CUSTOM MODEL ---
+    # Using V27 Architecture (ResNet + Attention + Linear Output)
+    model = ThreeDResNet_V27(input_channels=1, num_outputs=2, dropout_prob=0.5)
+    model.to(device)
+
+    criterion = PeriodicMAELoss()
+    optimizer = optim.AdamW(model.parameters(), lr=0.0005, weight_decay=0.05)
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
+
+    # --- 5. TRAINING LOOP ---
+    num_epochs = 50
+    history = {'train_loss': [], 'val_loss': [], 'train_mae': [], 'val_mae': []}
+
+    print(f"\nSTARTING TRAINING V34 (Custom Model + Gold Data)")
+    print("-" * 60)
+
+    for epoch in range(num_epochs):
+        model.train()
+        train_loss = 0.0
+        total_train = 0
+        loop = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}")
         
-        train_loss += loss.item() * inputs.size(0)
-        total_train += inputs.size(0)
-        loop.set_postfix(loss=loss.item())
-
-    avg_train_loss = train_loss / total_train
-
-    model.eval()
-    val_loss = 0.0
-    total_val = 0
-    with torch.no_grad():
-        for inputs, labels in val_loader:
+        for inputs, labels in loop:
             inputs, labels = inputs.to(device), labels.to(device)
+            optimizer.zero_grad()
             outputs = model(inputs)
-            val_loss += criterion(outputs, labels).item() * inputs.size(0)
-            total_val += inputs.size(0)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            
+            train_loss += loss.item() * inputs.size(0)
+            total_train += inputs.size(0)
+            loop.set_postfix(loss=loss.item())
 
-    avg_val_loss = val_loss / total_val
-    scheduler.step(avg_val_loss)
-    
-    history['train_loss'].append(avg_train_loss)
-    history['val_loss'].append(avg_val_loss)
-    
-    print(f"Results: Train MAE: {avg_train_loss:.2f}° | Val MAE: {avg_val_loss:.2f}°")
+        avg_train_loss = train_loss / total_train
 
-    if (epoch + 1) % 5 == 0:
-        torch.save(model.state_dict(), f"{MODEL_VERSION}_checkpoint.pth")
+        model.eval()
+        val_loss = 0.0
+        total_val = 0
+        with torch.no_grad():
+            for inputs, labels in val_loader:
+                inputs, labels = inputs.to(device), labels.to(device)
+                outputs = model(inputs)
+                val_loss += criterion(outputs, labels).item() * inputs.size(0)
+                total_val += inputs.size(0)
 
-torch.save(model.state_dict(), f"{MODEL_VERSION}_final.pth")
+        avg_val_loss = val_loss / total_val
+        scheduler.step(avg_val_loss)
+        
+        history['train_loss'].append(avg_train_loss)
+        history['val_loss'].append(avg_val_loss)
+        
+        print(f"Results: Train MAE: {avg_train_loss:.2f}° | Val MAE: {avg_val_loss:.2f}°")
 
-plt.figure(figsize=(10, 6))
-plt.plot(history['train_loss'], label='Train MAE')
-plt.plot(history['val_loss'], label='Val MAE')
-plt.title('Mean Absolute Error (Periodic)')
-plt.legend()
-plt.savefig(os.path.join(OUTPUT_PLOT_DIR, f"{MODEL_VERSION}_metrics.png"))
-plt.show()
+        if (epoch + 1) % 5 == 0:
+            torch.save(model.state_dict(), f"{MODEL_VERSION}_checkpoint.pth")
+
+    torch.save(model.state_dict(), f"{MODEL_VERSION}_final.pth")
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(history['train_loss'], label='Train MAE')
+    plt.plot(history['val_loss'], label='Val MAE')
+    plt.title('Mean Absolute Error (Periodic)')
+    plt.legend()
+    plt.savefig(os.path.join(OUTPUT_PLOT_DIR, f"{MODEL_VERSION}_metrics.png"))
+    plt.show()
