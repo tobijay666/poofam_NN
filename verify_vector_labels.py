@@ -6,7 +6,7 @@ import os
 # --- CONFIGURATION ---
 DATA_DIR = "MN40_Surface_Voxels"
 CSV_PATH = "MN40_Vector_Labels.csv"
-OUTPUT_PLOT = "verify_vectors.png"
+OUTPUT_PLOT = "verify_vectors3.png"
 GRID_SIZE = 64
 
 def plot_3d_voxel_and_vector(ax, voxel_grid, vector, title):
@@ -85,7 +85,7 @@ def verify_dataset():
         title = f"ID: {voxel_id}\nVector: [{vector[0]:.2f}, {vector[1]:.2f}, {vector[2]:.2f}]"
         plot_3d_voxel_and_vector(ax, voxel_grid, vector, title)
 
-    plt.tight_layout()
+    plt.tight_layout(pad=1.4, w_pad=0.5, h_pad=1.0)
     plt.savefig(OUTPUT_PLOT, dpi=150)
     print(f"Visual verification saved to: {OUTPUT_PLOT}")
 
