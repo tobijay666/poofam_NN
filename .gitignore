@@ -5,3 +5,4 @@
 *.pth
 /__pycache__
 *.pkl
+/MN40_Surface_Voxels
