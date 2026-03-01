@@ -6,3 +6,4 @@
 /__pycache__
 *.pkl
 /MN40_Surface_Voxels
+/MN40_Physics_Voxels
