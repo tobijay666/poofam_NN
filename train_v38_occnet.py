@@ -28,7 +28,7 @@ CSV_PATH = "MN40_Physics_Vectors.csv"
 # RESEARCHER NOTE: 3D ResNets have massive activation volumes. 
 # BATCH_SIZE 16 is the stable limit for 24GB VRAM to avoid fragmentation.
 BATCH_SIZE = 16  
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 1e-3
 WEIGHT_DECAY = 1e-5
 NORM_FACTOR = 180.0
 
