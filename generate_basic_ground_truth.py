@@ -9,7 +9,7 @@ import multiprocessing
 
 # --- CONFIGURATION ---
 # Removed the leading slash so it looks in your current directory
-DATA_DIR = "ModelNet40" 
+DATA_DIR = "../modelnet40" 
 ALL_RESULTS_CSV = "MN40_All_Orientations.csv"
 BEST_RESULTS_CSV = "MN40_Best_Orientations.csv"
 
