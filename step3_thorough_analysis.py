@@ -8,7 +8,7 @@ import glob
 
 # --- CONFIGURATION ---
 CSV_PATH = "MN40_Best_Orientations.csv"
-DATA_DIR = "ModelNet40"
+DATA_DIR = "../ModelNet40"
 OUTPUT_FOLDER = "Analysis_Results"
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 

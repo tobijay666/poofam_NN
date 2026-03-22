@@ -1,0 +1,27 @@
+CRITICAL DATASET EVALUATION
+==========================
+
+Total Samples: 12296
+Samples with (0,0) as Optimal: 769 (6.25%)
+
+BIAS ANALYSIS:
+STATUS: (0,0) distribution appears manageable.
+
+TOP BIASED CLASSES:
+class
+bathtub       0.493590
+bowl          0.369048
+mantel        0.270833
+flower_pot    0.260355
+cup           0.252525
+tent          0.241379
+vase          0.213913
+radio         0.177419
+sink          0.168919
+cone          0.134409
+
+RESEARCHER RECOMMENDATION:
+1. If bias > 20%, we must implement 'Relative Rotation Training'.
+2. Instead of predicting the absolute best angle, we should randomly rotate the input mesh
+   and train the network to predict the 'Fix' rotation (Best_Angle - Current_Angle).
+3. This effectively creates an infinite dataset and destroys the (0,0) bias.
