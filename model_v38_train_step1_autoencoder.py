@@ -1,13 +1,16 @@
+import os
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
 import numpy as np
-import os
 import glob
 import pandas as pd
 import time
 from tqdm import tqdm
+
+
 
 # --- ARCHITECTURAL COMPONENTS (Ref: Mescheder et al., 2019) ---
 
@@ -97,13 +100,25 @@ class VoxelDatasetAE(Dataset):
 def train():
     # Config
     EPOCHS = 50
-    BATCH_SIZE = 32
+    BATCH_SIZE = 16
     LR = 1e-4 # Standard for 3D ResNets
     LATENT_DIM = 512
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    loader = DataLoader(VoxelDatasetAE("./MN40_surface_voxels"), batch_size=BATCH_SIZE, shuffle=True)
+    torch.backends.cudnn.benchmark = False  # Disable heavy 3D auto-tuning
+    torch.backends.cudnn.deterministic = True
+    torch.cuda.empty_cache()
+    # Load Dataset
+    dataset = VoxelDatasetAE("./MN40_surface_voxels")
     
+    # num_workers MUST be 0 when using large RAM caches on Windows
+    loader = DataLoader(
+        dataset, 
+        batch_size=BATCH_SIZE, 
+        shuffle=True, 
+        num_workers=0, 
+        pin_memory=True
+    )
     model = VoxelAutoencoder(latent_dim=LATENT_DIM).to(device)
     
     # AdamW is superior for weight decay (Loshchilov & Hutter, 2017)
