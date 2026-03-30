@@ -1,6 +1,6 @@
 import os
 # Memory management for RTX 3090
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
 
 import torch
 import torch.nn as nn
@@ -77,24 +77,51 @@ class OrientationRegressor(nn.Module):
 
 class VoxelDatasetSupervised(Dataset):
     def __init__(self, csv_path, voxel_dir):
+        if not os.path.exists(csv_path):
+            raise FileNotFoundError(f"CSV not found at {csv_path}")
+            
         self.df = pd.read_csv(csv_path)
         self.voxel_dir = voxel_dir
         self.samples = []
         self.labels = []
         
-        print(f"Researcher Mode: Caching {len(self.df)} models into RAM...")
+        print(f"Researcher Mode: Scanning {voxel_dir} for {len(self.df)} models...")
+        
+        found_count = 0
         for _, row in tqdm(self.df.iterrows(), total=len(self.df)):
-            path = os.path.join(self.voxel_dir, f"{row['voxel_id']}.npy")
-            if os.path.exists(path):
-                voxel = np.load(path).astype(np.uint8)
-                # Ensure 64x64x64
+            v_id = str(row['voxel_id'])
+            v_id = v_id + '_aug0'
+            # Try a few common path variations
+            path_options = [
+                os.path.join(self.voxel_dir, f"{v_id}.npy"),
+                os.path.join(self.voxel_dir, v_id) if v_id.endswith('.npy') else ""
+            ]
+            
+            actual_path = None
+            for p in path_options:
+                if p and os.path.exists(p):
+                    actual_path = p
+                    break
+            
+            if actual_path:
+                voxel = np.load(actual_path).astype(np.uint8)
                 if voxel.shape != (64, 64, 64):
                     padded = np.zeros((64, 64, 64), dtype=np.uint8)
-                    padded[:voxel.shape[0], :voxel.shape[1], :voxel.shape[2]] = voxel
+                    # Handle different possible input shapes safely
+                    dx, dy, dz = voxel.shape
+                    padded[:min(dx,64), :min(dy,64), :min(dz,64)] = voxel[:min(dx,64), :min(dy,64), :min(dz,64)]
                     voxel = padded
                 self.samples.append(voxel)
-                # Normalize angles to [0, 1]
                 self.labels.append([row['angle_x'] / 180.0, row['angle_y'] / 180.0])
+                found_count += 1
+
+        if found_count == 0:
+            print(f"\nCRITICAL ERROR: 0 files were loaded from {voxel_dir}!")
+            print(f"Check if your CSV 'voxel_id' column matches the filenames in the folder.")
+            print(f"Example path tried: {os.path.join(self.voxel_dir, str(self.df.iloc[0]['voxel_id']) + '.npy')}")
+            exit()
+        else:
+            print(f"Successfully cached {found_count} models.")
 
     def __len__(self):
         return len(self.samples)
@@ -104,27 +131,40 @@ class VoxelDatasetSupervised(Dataset):
         label = torch.tensor(self.labels[idx], dtype=torch.float32)
         return voxel, label
 
-# --- TRAINING ENGINE ---
+# --- UPDATED TRAINING CONFIG ---
 
-def train():
+Update : "Fine tuning donedef train():
     # Config
     EPOCHS = 100
-    BATCH_SIZE = 16 # Safe for 3090
+    BATCH_SIZE = 16 
+    
+    # Verify these paths manually before running!
     PRETRAINED_FILE = "AE_Checkpoints/ae_v38_ep30.pth"
     CSV_PATH = "MN40_Best_Orientations.csv"
-    VOXEL_DIR = "./MN40_surface_voxels"
+    VOXEL_DIR = "MN40_Surface_Voxels" # Ensure this matches your actual folder name
     
+    if not os.path.exists(VOXEL_DIR):
+        print(f"ERROR: Voxel directory '{VOXEL_DIR}' does not exist.")
+        return
+
     device = torch.device("cuda")
-    torch.backends.cudnn.benchmark = False
     
     # Load Data
     dataset = VoxelDatasetSupervised(CSV_PATH, VOXEL_DIR)
-    train_size = int(0.85 * len(dataset))
-    val_size = len(dataset) - train_size
+    
+    # Safety check for split
+    dataset_size = len(dataset)
+    train_size = int(0.85 * dataset_size)
+    val_size = dataset_size - train_size
+    
+    print(f"Splitting dataset: {train_size} train, {val_size} val")
+    
     train_ds, val_ds = torch.utils.data.random_split(dataset, [train_size, val_size])
     
+    # Use num_workers=0 for Windows RAM cache
     train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=0)
     val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
+    
     
     model = OrientationRegressor(pretrained_path=PRETRAINED_FILE).to(device)
     
